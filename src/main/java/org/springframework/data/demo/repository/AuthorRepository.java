@@ -7,6 +7,6 @@ public interface AuthorRepository extends Repository<Author, String> {
 	
 	Author save(Author author);
 	
-	Author findOne(String name);
+	Author findByName(String name);
 	
 }

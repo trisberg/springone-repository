@@ -1,6 +1,11 @@
 package org.springframework.data.demo.repository;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.demo.domain.Author;
@@ -23,7 +28,7 @@ public class MongoBookShelf implements BookShelf {
 	
 	@Override
 	public void save(Book book) {
-		checkForAuthor(book);
+		lookUpAuthor(book);
 		bookRepository.save(book);
 	}
 	
@@ -42,8 +47,43 @@ public class MongoBookShelf implements BookShelf {
 		 return bookRepository.findAll();
 	}
 
-	private void checkForAuthor(Book book) {
-		Author existing = authorRepository.findOne(book.getAuthor().getName());
+	@Override
+	public List<Book> findByCategoriesOrYear(Set<String> categories, String year) {
+		String[] categoriesToMatch;
+		if (categories == null) {
+			categoriesToMatch = new String[] {};
+		}
+		else {
+			categoriesToMatch = categories.toArray(new String[categories.size()]);
+		}
+		Date startDate = null;
+		if (year != null && year.length() == 4) {
+			DateFormat formatter = new SimpleDateFormat("yyyy-dd-MM");
+			try {
+				startDate = formatter.parse(year + "-01-01");
+			} catch (ParseException e) {}
+		}
+		
+		if (startDate != null) {
+			if (categoriesToMatch.length > 0) {
+				return bookRepository.findByPublishedGreaterThanAndCategoriesIn(startDate, categoriesToMatch);
+			}
+			else {
+				return bookRepository.findByPublishedGreaterThan(startDate);
+			}
+		}
+		else {
+			if (categoriesToMatch.length > 0) {
+				return bookRepository.findByCategoriesIn(categoriesToMatch);
+			}
+			else {
+				return findAll();
+			}
+		}
+	}
+
+	private void lookUpAuthor(Book book) {
+		Author existing = authorRepository.findByName(book.getAuthor().getName());
 		if (existing != null) {
 			book.setAuthor(existing);
 		}

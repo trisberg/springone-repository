@@ -1,5 +1,6 @@
 package org.springframework.data.demo.repository;
 
+import java.util.Date;
 import java.util.List;
 
 import org.springframework.data.demo.domain.Book;
@@ -14,5 +15,11 @@ public interface BookRepository extends Repository<Book, String> {
 	void delete(String isbn);
 	
 	List<Book> findAll(); 
+
+	List<Book> findByPublishedGreaterThan(Date date);
+	
+	List<Book> findByCategoriesIn(String[] categories); 
+
+	List<Book> findByPublishedGreaterThanAndCategoriesIn(Date date, String[] categories); 
 
 }

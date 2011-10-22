@@ -1,7 +1,10 @@
 package org.springframework.data.demo.web;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import javax.servlet.http.HttpServletRequest;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.support.SessionStatus;
 
 import org.springframework.data.demo.domain.Author;
 import org.springframework.data.demo.domain.Book;
+import org.springframework.data.demo.domain.SearchCriteria;
 import org.springframework.data.demo.repository.BookShelf;
 import org.springframework.data.demo.repository.DbHelper;
 
@@ -31,6 +35,12 @@ import org.springframework.data.demo.repository.DbHelper;
 @Controller
 public class HomeController {
 	
+	private final List<String> categories = 
+			Arrays.asList("Java", "Spring", "Mongo DB", "Cloud Foundry", "Scala", "Ruby", "Grails");
+	
+	private final List<String> years = 
+			Arrays.asList("", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011");
+
 	@Autowired
 	private BookShelf bookShelf;
 
@@ -57,7 +67,7 @@ public class HomeController {
 	}
 	
 	/**
-	 * Add new book.
+	 * Add new book form.
 	 */
 	@RequestMapping(value = "/new", method = RequestMethod.GET)
 	public String newBook(Model model) {
@@ -66,6 +76,8 @@ public class HomeController {
 		book.setAuthor(new Author());
 		model.addAttribute("book", book );
 		
+		model.addAttribute("categories", categories);
+
 		return "addBook";
 	}
 
@@ -101,7 +113,9 @@ public class HomeController {
 		
 		Book book = bookShelf.find(isbn);
 		model.addAttribute("book", book );
-		
+
+		model.addAttribute("categories", categories);
+
 		return "editBook";
 	}
 
@@ -127,6 +141,51 @@ public class HomeController {
 		}
 		
 		return "redirect:/";
+	}
+
+	/**
+	 * Define search criteria.
+	 */
+	@RequestMapping(value = "/search", method = RequestMethod.GET)
+	public String searchCriteria(Model model) {
+
+		SearchCriteria searchCriteria = new SearchCriteria();
+		model.addAttribute("search", searchCriteria);
+
+		model.addAttribute("years", years);		
+		model.addAttribute("categories", categories);
+
+		List<Book> bookList = new ArrayList<Book>();
+		model.addAttribute("bookList", bookList);
+
+		return "search";
+	}
+
+	/**
+	 * Search for books.
+	 */
+	@RequestMapping(value = "/search", method = RequestMethod.POST)
+	public String searchForBooks(@ModelAttribute("search") SearchCriteria searchCriteria, @ModelAttribute("bookList") ArrayList<Book> bookList, Model model, BindingResult result, SessionStatus status, HttpServletRequest request) {
+		
+		if (request.getParameter("_cancel") != null) {
+			return "redirect:/";
+		}
+		if (result.hasErrors()) {
+			return	"search";
+		}
+		
+		if (searchCriteria != null) {
+			status.setComplete();
+			bookList.clear();
+			bookList.addAll(bookShelf.findByCategoriesOrYear(searchCriteria.getCategories(), searchCriteria.getStartYear()));
+		}
+
+		model.addAttribute("years", years);		
+		model.addAttribute("categories", categories);
+
+		model.addAttribute("bookList", bookList);
+		
+		return "search";
 	}
 
 	/**
